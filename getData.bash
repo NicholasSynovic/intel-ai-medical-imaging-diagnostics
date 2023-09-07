@@ -1,5 +1,4 @@
 #!/bin/bash
 
-kaggle datasets download kaushil268/disease-prediction-using-machine-learning
-unzip disease-prediction-using-machine-learning.zip -d disease-prediction
-python prepare_data.py
+wget https://s3.eu-central-1.amazonaws.com/public.unit8.co/data/chest_xray.tar.gz
+tar -xf chest_xray.tar.gz
