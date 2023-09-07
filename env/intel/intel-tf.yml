@@ -5,7 +5,7 @@ channels:
 dependencies:
   - intelpython=2022.0.0
   - pip=21.2.4
-  - python=3.8 
+  - python=3.8
   - pip:
     - numpy==1.22
     - importlib-metadata==4.11.3

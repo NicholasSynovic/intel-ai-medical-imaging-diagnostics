@@ -5,17 +5,20 @@
 Openvino quantization
 """
 
-# pylint: disable= W0611 C0411 E0401 C0115 W1203
-from pathlib import Path
-import tensorflow as tf  # noqa: F401
+import argparse
 import copy
+import logging
 import os
 import sys  # noqa: F401
 import urllib  # noqa: F401
-import argparse
+import warnings
+# pylint: disable= W0611 C0411 E0401 C0115 W1203
+from pathlib import Path
+
 import cv2
-#import matplotlib.pyplot as plt  # noqa: F401
+# import matplotlib.pyplot as plt  # noqa: F401
 import numpy as np
+import tensorflow as tf  # noqa: F401
 from addict import Dict
 from compression.api import DataLoader, Metric
 from compression.engines.ie_engine import IEEngine
@@ -23,10 +26,8 @@ from compression.graph import load_model, save_model
 from compression.graph.model_utils import compress_model_weights
 from compression.pipeline.initializer import create_pipeline
 from openvino.inference_engine import IECore  # noqa: F401
-#from pathlib import Path
+# from pathlib import Path
 from PIL import Image  # noqa: F401
-import warnings
-import logging
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -36,8 +37,20 @@ warnings.filterwarnings("ignore")
 if __name__ == "__main__":
     # ## Parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument('--datapath', type=str, required=False, default=Path('/home/azureuser/oneAPI-MedicalDiagnosis-DL/data/chest_xray/val'), help='dataset path')  # noqa: E501
-    parser.add_argument('--modelpath', type=str, required=False, default=Path("model/Medical_Diagnosis_CNN.xml"), help='Model path trained')   # noqa: E501
+    parser.add_argument(
+        "--datapath",
+        type=str,
+        required=False,
+        default=Path("/home/azureuser/oneAPI-MedicalDiagnosis-DL/data/chest_xray/val"),
+        help="dataset path",
+    )  # noqa: E501
+    parser.add_argument(
+        "--modelpath",
+        type=str,
+        required=False,
+        default=Path("model/Medical_Diagnosis_CNN.xml"),
+        help="Model path trained",
+    )  # noqa: E501
     FLAGS = parser.parse_args()
     model_xml = Path(FLAGS.modelpath)
     data_dir = Path(FLAGS.datapath)
@@ -56,7 +69,9 @@ model_config = Dict(
     }
 )
 
-engine_config = Dict({"device": "CPU", "stat_requests_number": 2, "eval_requests_number": 2})
+engine_config = Dict(
+    {"device": "CPU", "stat_requests_number": 2, "eval_requests_number": 2}
+)
 
 algorithms = [
     {
@@ -68,6 +83,7 @@ algorithms = [
         },
     }
 ]
+
 
 # Defining all required function to run openvino model
 class ClassificationDataLoader(DataLoader):
@@ -82,8 +98,12 @@ class ClassificationDataLoader(DataLoader):
         :param data_source: path to data directory
         """
         self.data_source = Path(data_source)
-        self.dataset = [p for p in data_dir.glob("**/*") if p.suffix in (".png", ".jpeg")]
-        self.class_names = sorted([item.name for item in Path(data_dir).iterdir() if item.is_dir()])
+        self.dataset = [
+            p for p in data_dir.glob("**/*") if p.suffix in (".png", ".jpeg")
+        ]
+        self.class_names = sorted(
+            [item.name for item in Path(data_dir).iterdir() if item.is_dir()]
+        )
 
     def __len__(self):
         """
@@ -163,6 +183,7 @@ class Accuracy(Metric):
         """
         return {self._name: {"direction": "higher-better", "type": "accuracy"}}
 
+
 # Step 1: Load the model
 model = load_model(model_config=model_config)
 original_model = copy.deepcopy(model)
@@ -197,10 +218,19 @@ logger.info(f"The quantized model is stored in {compressed_model_xml}")
 # Step 9 (Optional): Evaluate the original and compressed model. Print the results
 original_metric_results = pipeline.evaluate(original_model)
 if original_metric_results:
-    print(f"Accuracy of the original model:  {next(iter(original_metric_results.values())):.5f}")
-    logger.info("Accuracy of the original model: %f", {next(iter(original_metric_results.values()))})
+    print(
+        f"Accuracy of the original model:  {next(iter(original_metric_results.values())):.5f}"
+    )
+    logger.info(
+        "Accuracy of the original model: %f",
+        {next(iter(original_metric_results.values()))},
+    )
 
 quantized_metric_results = pipeline.evaluate(compressed_model)
 if quantized_metric_results:
-    print(f"Accuracy of the quantized model: {next(iter(quantized_metric_results.values())):.5f}")
-    logger.info("Accuracy of the quantized model: {next(iter(quantized_metric_results.values()))}")
+    print(
+        f"Accuracy of the quantized model: {next(iter(quantized_metric_results.values())):.5f}"
+    )
+    logger.info(
+        "Accuracy of the quantized model: {next(iter(quantized_metric_results.values()))}"
+    )

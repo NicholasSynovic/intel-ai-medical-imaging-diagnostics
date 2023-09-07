@@ -4,7 +4,7 @@ wget https://s3.eu-central-1.amazonaws.com/public.unit8.co/data/chest_xray.tar.g
 tar -xf chest_xray.tar.gz
 
 
-##Note- Make sure "chest_xray" folder  should beinside "data" folder  
+##Note- Make sure "chest_xray" folder  should beinside "data" folder
  scripts have been written in such folder structure ##
 
 

@@ -6,23 +6,25 @@
 """
 # pylint: disable=C0301 E0401 C0103 E0602 E0401 W0702 W0612 C0121 W0621 C0200 C0209 W0621 R0914 I1101 C0413 C0411
 
+import argparse
 import os
 import sys
-import argparse
-from pathlib import Path
 import time
 import warnings
-from cv2 import cv2
+from pathlib import Path
+
 import numpy as np
 import tensorflow as tf1
 import tensorflow.compat.v1 as tf
+from cv2 import cv2
+
 tf.disable_v2_behavior()
 import logging  # noqa: E402
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 warnings.filterwarnings("ignore")
-tf1.get_logger().setLevel('INFO')
+tf1.get_logger().setLevel("INFO")
 tf1.autograph.set_verbosity(1, alsologtostdout=True)
 
 
@@ -34,33 +36,40 @@ code_batch_size = 20  # @param {type: "number"}
 val_batch_size = 2
 learning_rate = 0.001  # @param {type: "number"}
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--datadir", type=str, default="./data/chest_xray", help="Provide the exact data path")
+    parser.add_argument(
+        "--datadir",
+        type=str,
+        default="./data/chest_xray",
+        help="Provide the exact data path",
+    )
     args = parser.parse_args()
 
 data_dir_path = args.datadir
-data_dir = Path("./data/chest_xray/train/NORMAL") and Path("./data/chest_xray/train/PNEUMONIA")
+data_dir = Path("./data/chest_xray/train/NORMAL") and Path(
+    "./data/chest_xray/train/PNEUMONIA"
+)
 data_files = []
 for p in data_dir.glob("**/*"):
     if p.suffix in (".jpeg"):  # pylint: disable=C0325
         data_files.append(p)
 try:
-    if(len(data_files) == 0):  # pylint: disable=C0325
+    if len(data_files) == 0:  # pylint: disable=C0325
         logger.info("unable to find Images")
 except:  # noqa: E722
-    logger.info('Images not found or format not supported,execution failed')
+    logger.info("Images not found or format not supported,execution failed")
     sys.exit()  # noqa: F821
 
 
 # Defining the creat path method where data needs to be read
 def create_path_list(abspath="None"):
-    ''' this is  function to get the path of images where it saved'''
+    """this is  function to get the path of images where it saved"""
     pathlist = []
-    for (root, dirs, files) in os.walk(abspath):
+    for root, dirs, files in os.walk(abspath):
         for subdir in dirs:
             for imgpath in os.listdir(os.path.join(abspath, subdir)):
-                if imgpath.endswith('.jpeg'):
+                if imgpath.endswith(".jpeg"):
                     img_append = os.path.join(abspath, subdir, imgpath)
                     pathlist.append(img_append)
                     # print(img_append)
@@ -70,14 +79,24 @@ def create_path_list(abspath="None"):
 
 # Enter the paths of valid, training & testing just to make sure all the paths are correct
 ABS_VAL_PATH = data_dir_path + "/val"
-logger.info("ABS_VAL_PATH is ============================================>%s", ABS_VAL_PATH)
+logger.info(
+    "ABS_VAL_PATH is ============================================>%s", ABS_VAL_PATH
+)
 ABS_TRAIN_PATH = data_dir_path + "/train"
-logger.info("ABS_TRAIN_PATH is ============================================>%s", ABS_TRAIN_PATH)
+logger.info(
+    "ABS_TRAIN_PATH is ============================================>%s", ABS_TRAIN_PATH
+)
 ABS_TEST_PATH = data_dir_path + "/test"
-logger.info("ABS_TEST_PATH is ============================================>%s", ABS_TEST_PATH)
+logger.info(
+    "ABS_TEST_PATH is ============================================>%s", ABS_TEST_PATH
+)
 
 # Checking the train dataset
-if (os.path.isdir(ABS_VAL_PATH) == True and os.path.isdir(ABS_TRAIN_PATH) == True and os.path.isdir(ABS_TEST_PATH) == True):  # noqa: E111 E712 E501
+if (
+    os.path.isdir(ABS_VAL_PATH) == True
+    and os.path.isdir(ABS_TRAIN_PATH) == True
+    and os.path.isdir(ABS_TEST_PATH) == True
+):  # noqa: E111 E712 E501
     logger.info("Data paths exist , executing the programme")  # noqa: E101 E117 W191
 else:  # noqa:  E111
     logger.info("Valid path not found")  # noqa:  E117
@@ -86,13 +105,13 @@ else:  # noqa:  E111
 
 # Read the image from the path defined above
 def read_image(batch_size=4, LAST_INDEX=2, pathlist=None):
-    '''This is the function where images will be read in batch_size'''
+    """This is the function where images will be read in batch_size"""
     x_batch, y_batch = [], []
-    for imagepath in pathlist[LAST_INDEX:LAST_INDEX+batch_size]:
+    for imagepath in pathlist[LAST_INDEX : LAST_INDEX + batch_size]:
         image = cv2.imread(imagepath)
         image = cv2.resize(image, dsize=INPUT_IMAGE_SIZE)
         image = image / 255.0
-        if imagepath.split('/')[-2] == 'NORMAL':
+        if imagepath.split("/")[-2] == "NORMAL":
             y = np.array([0, 1])
         else:
             y = np.array(([1, 0]))
@@ -109,18 +128,25 @@ dropout_rate = 0.5  # @param {type: "number"}
 
 # Define the functions required running TF
 def conv2d(inputs, filters, stride_size):
-    ''' this is conv layer of the model'''
-    out = tf.nn.conv2d(inputs, filters, strides=[1, stride_size, stride_size, 1], padding=padding)
+    """this is conv layer of the model"""
+    out = tf.nn.conv2d(
+        inputs, filters, strides=[1, stride_size, stride_size, 1], padding=padding
+    )
     return tf.nn.leaky_relu(out, alpha=leaky_relu_alpha)
 
 
 def maxpool(inputs, pool_size, stride_size):
-    '''this is the maxpool layer defination'''
-    return tf.nn.max_pool2d(inputs, ksize=[1, pool_size, pool_size, 1], padding='VALID', strides=[1, stride_size, stride_size, 1])
+    """this is the maxpool layer defination"""
+    return tf.nn.max_pool2d(
+        inputs,
+        ksize=[1, pool_size, pool_size, 1],
+        padding="VALID",
+        strides=[1, stride_size, stride_size, 1],
+    )
 
 
 def dense(inputs, weights):
-    '''this is the dense layer defination'''
+    """this is the dense layer defination"""
     x = tf.nn.leaky_relu(tf.matmul(inputs, weights), alpha=leaky_relu_alpha)
     # return tf.nn.dropout(x, rate=dropout_rate)
     return x
@@ -131,8 +157,7 @@ initializer = tf.initializers.glorot_uniform()
 
 
 def get_weight(shape, name):
-
-    '''this is get_weight function shape and name'''
+    """this is get_weight function shape and name"""
     return tf.Variable(initializer(shape), name=name, trainable=True, dtype=tf.float32)
 
 
@@ -155,18 +180,16 @@ shapes = [
     [1600, 800],
     [800, 64],
     [64, output_classes],
-
-
 ]
 
 weights = []
 for i in range(len(shapes)):
-    weights.append(get_weight(shapes[i], 'weight{}'.format(i)))
+    weights.append(get_weight(shapes[i], "weight{}".format(i)))
 
 
 #  defing the model function
 def model(x):
-    '''this is the model layer'''
+    """this is the model layer"""
     x = tf.cast(x, dtype=tf.float32)
     c_1 = conv2d(x, weights[0], stride_size=1)
     c_1 = conv2d(c_1, weights[1], stride_size=1)
@@ -209,7 +232,7 @@ y = tf.placeholder(tf.float32, [None, 2])
 y_pred_1 = model(x)
 
 # Loss Funstion usage
-loss = tf1.losses.categorical_crossentropy(y, y_pred_1)   # define the loss function
+loss = tf1.losses.categorical_crossentropy(y, y_pred_1)  # define the loss function
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 train = optimizer.minimize(loss)
 validation = optimizer.minimize(loss)
@@ -246,7 +269,9 @@ logger.info("Warm Up  time in seconds --> %f", time.time() - start_time)
 # Actual Training
 trainingStart_time = time.time()
 for epoch in range(0, 5):
-    logger.info("epoch in 5 we are evaluting training time : epoch_number -->%d ", epoch)
+    logger.info(
+        "epoch in 5 we are evaluting training time : epoch_number -->%d ", epoch
+    )
     LAST_INDEX = 0
     for step in range(0, int(len(path_train_list) / code_batch_size)):
         x_batch, y_batch = read_image(code_batch_size, LAST_INDEX, path_train_list)
@@ -265,19 +290,25 @@ for step in range(175, 375):
     LAST_INDEX = step
     x_batch, y_batch = read_image(BATCH_SIZE, LAST_INDEX, path_test_list)
     LAST_INDEX += BATCH_SIZE
-    correct_prediction_temp = s.run(correct_prediction, feed_dict={x: x_batch, y: y_batch})
+    correct_prediction_temp = s.run(
+        correct_prediction, feed_dict={x: x_batch, y: y_batch}
+    )
     # print(correct_prediction_temp)
     if correct_prediction_temp == 1.0:
         CORRECT_PREDICTION_COUNTER = CORRECT_PREDICTION_COUNTER + 1
     else:
-        WRONG_PREDICTION_COUNTER = WRONG_PREDICTION_COUNTER+1
-logger.info("the number of correct predcitions (TP + TN) is:%d", CORRECT_PREDICTION_COUNTER)
+        WRONG_PREDICTION_COUNTER = WRONG_PREDICTION_COUNTER + 1
+logger.info(
+    "the number of correct predcitions (TP + TN) is:%d", CORRECT_PREDICTION_COUNTER
+)
 logger.info("The number of wrong predictions (FP + FN) is%d", WRONG_PREDICTION_COUNTER)
 
 # Calculation of Accuracy
-ACCURACY = CORRECT_PREDICTION_COUNTER / (CORRECT_PREDICTION_COUNTER + WRONG_PREDICTION_COUNTER)
+ACCURACY = CORRECT_PREDICTION_COUNTER / (
+    CORRECT_PREDICTION_COUNTER + WRONG_PREDICTION_COUNTER
+)
 logger.info("Accuracy of the model is :%f", (ACCURACY * 100))
 
 # Saving the Model
 model = tf.train.Saver()
-model.save(s, './model/Medical_Diagnosis_CNN')
+model.save(s, "./model/Medical_Diagnosis_CNN")
